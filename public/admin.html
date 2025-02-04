@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Escape Room Admin</title>
+    <style>
+        /* Dark theme styling */
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 16px);
+            padding: 8px;
+            margin-bottom: 10px;
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #e0e0e0;
+        }
+
+        button {
+            background: #6200ee;
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #7e3ff2;
+        }
+
+        #result {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Escape Room Admin Panel</h1>
+    <form id="answersForm">
+        <label for="room1">Room 1 Answer:</label>
+        <input type="text" id="room1" placeholder="Answer for Room 1">
+
+        <label for="room2">Room 2 Answer:</label>
+        <input type="text" id="room2" placeholder="Answer for Room 2">
+
+        <label for="room3">Room 3 Answer:</label>
+        <input type="text" id="room3" placeholder="Answer for Room 3">
+
+        <div style="text-align: center;">
+            <button type="submit">Update Answers</button>
+        </div>
+    </form>
+    <div id="result"></div>
+    <script>
+        const form = document.getElementById('answersForm');
+        const resultDiv = document.getElementById('result');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const room1 = document.getElementById('room1').value.trim();
+            const room2 = document.getElementById('room2').value.trim();
+            const room3 = document.getElementById('room3').value.trim();
+            fetch('/admin/updateAnswers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ room1, room2, room3 })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        resultDiv.textContent = "Answers updated successfully.";
+                    } else {
+                        resultDiv.textContent = "Failed to update answers.";
+                    }
+                })
+                .catch(err => {
+                    resultDiv.textContent = "Error updating answers.";
+                });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Escape Room - Player</title>
+    <style>
+        /* Dark theme base styling */
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+        }
+
+        #join,
+        #game {
+            max-width: 500px;
+            margin: 20px auto;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        input[type="text"] {
+            width: calc(100% - 16px);
+            padding: 8px;
+            margin: 10px 0;
+            background: #2a2a2a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #e0e0e0;
+        }
+
+        /* Big round start button remains unchanged */
+        #startBtn {
+            display: block;
+            margin: 30px auto;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #6200ee;
+            color: #fff;
+            font-size: 1.5em;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        #startBtn:hover:not([disabled]) {
+            background: #7e3ff2;
+        }
+
+        #startBtn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        /* Styling for Join Game and Submit Answer buttons */
+        #joinBtn,
+        #submitBtn {
+            background: #6200ee;
+            border: none;
+            color: #fff;
+            padding: 15px 25px;
+            font-size: 1.2em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        #joinBtn:hover,
+        #submitBtn:hover {
+            background: #7e3ff2;
+        }
+
+        /* Dystopian style timer with block letters */
+        #timer {
+            font-size: 3em;
+            font-family: 'Courier New', Courier, monospace;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            text-align: center;
+            margin: 20px 0;
+            border: 3px solid #6200ee;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        /* Answer section is hidden until timer starts */
+        #answerSection {
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+
+        #message {
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Escape Room Challenge</h1>
+    <div id="join">
+        <label for="name">Enter your teams name:</label>
+        <input type="text" id="name" placeholder="Your team name">
+        <button id="joinBtn">Join Game</button>
+    </div>
+    <div id="game" style="display: none;">
+        <h2 id="roomTitle">Room 1</h2>
+        <div id="timer">10:00</div>
+        <button id="startBtn">Start</button>
+        <div id="answerSection">
+            <input type="text" id="answerInput" placeholder="Enter your answer">
+            <button id="submitBtn">Submit Answer</button>
+        </div>
+        <div id="message"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let playerId = null;
+        let currentRoom = 1;
+        let timerInterval = null;
+        let remainingTime = 600; // seconds (10 minutes)
+        let timerStarted = false;
+
+        const joinDiv = document.getElementById('join');
+        const gameDiv = document.getElementById('game');
+        const joinBtn = document.getElementById('joinBtn');
+        const nameInput = document.getElementById('name');
+        const roomTitle = document.getElementById('roomTitle');
+        const timerDisplay = document.getElementById('timer');
+        const startBtn = document.getElementById('startBtn');
+        const answerSection = document.getElementById('answerSection');
+        const answerInput = document.getElementById('answerInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const messageDiv = document.getElementById('message');
+
+        // Join the game
+        joinBtn.addEventListener('click', () => {
+            const name = nameInput.value.trim();
+            if (!name) {
+                alert("Please enter your name.");
+                return;
+            }
+            socket.emit('player:join', { name }, (response) => {
+                if (response.success) {
+                    playerId = response.playerId;
+                    joinDiv.style.display = 'none';
+                    gameDiv.style.display = 'block';
+                }
+            });
+        });
+
+        // Start the timer for the current room
+        startBtn.addEventListener('click', () => {
+            if (timerStarted) return;
+            timerStarted = true;
+            remainingTime = 600; // reset timer for the room
+            updateTimerDisplay();
+            socket.emit('player:startTimer', { room: currentRoom });
+            timerInterval = setInterval(() => {
+                remainingTime--;
+                if (remainingTime <= 0) {
+                    remainingTime = 0;
+                    clearInterval(timerInterval);
+                    // Auto-submit when time runs out (empty answer will trigger "Time's up!")
+                    submitAnswer("");
+                }
+                updateTimerDisplay();
+            }, 1000);
+            // Hide start button once the timer starts
+            startBtn.style.display = 'none';
+            // Show answer section now that timer has started
+            answerSection.style.display = 'block';
+            messageDiv.textContent = "";
+        });
+
+        // When the user clicks Submit Answer
+        submitBtn.addEventListener('click', () => {
+            const answer = answerInput.value.trim();
+            submitAnswer(answer);
+        });
+
+        // Submit answer to the server and process the response
+        function submitAnswer(answer) {
+            socket.emit('player:submitAnswer', { room: currentRoom, answer: answer }, (response) => {
+                messageDiv.textContent = response.message;
+                // If the answer is correct or time has expired, clear the timer and move on
+                if (response.success || response.message === "Time's up!") {
+                    clearInterval(timerInterval);
+                    if (currentRoom < 3) {
+                        // Prepare for the next room
+                        currentRoom++;
+                        roomTitle.textContent = "Room " + currentRoom;
+                        timerDisplay.textContent = "10:00";
+                        timerStarted = false;
+                        answerInput.value = "";
+                        answerSection.style.display = 'none';
+                        // Show the start button again for the next room
+                        startBtn.style.display = 'block';
+                    } else {
+                        // Game finished
+                        messageDiv.textContent = "Game Finished! Check the scoreboard for final results.";
+                        answerSection.style.display = 'none';
+                        startBtn.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = remainingTime % 60;
+            timerDisplay.textContent =
+                (minutes < 10 ? "0" + minutes : minutes) + ":" +
+                (seconds < 10 ? "0" + seconds : seconds);
+        }
+    </script>
+</body>
+
+</html>
