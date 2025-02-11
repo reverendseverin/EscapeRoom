@@ -15,9 +15,9 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Global configuration for room answers (unchanged)
 let answers = {
-  1: "escape",
-  2: "room",
-  3: "puzzle",
+  1: "points",
+  2: "dont",
+  3: "matter",
 };
 
 // In-memory store for player sessions, keyed by persistentId.
