@@ -3,6 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
+    <!-- Added viewport meta tag for proper scaling on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
     <title>Escape Room - Player</title>
     <style>
         /* Dark theme base styling */
@@ -107,6 +110,38 @@
             margin-top: 20px;
             text-align: center;
             font-weight: bold;
+        }
+
+        /* Mobile responsiveness adjustments */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            #join,
+            #game {
+                max-width: 100%;
+                padding: 15px;
+                margin: 10px auto;
+            }
+
+            #startBtn {
+                width: 100px;
+                height: 100px;
+                font-size: 1.2em;
+            }
+
+            #timer {
+                font-size: 2em;
+                letter-spacing: 2px;
+                padding: 5px;
+            }
+
+            #joinBtn,
+            #submitBtn {
+                padding: 12px 20px;
+                font-size: 1em;
+            }
         }
     </style>
 </head>
