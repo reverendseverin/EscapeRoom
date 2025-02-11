@@ -65,7 +65,7 @@
         </tbody>
     </table>
 
-    <!-- Final Results Table (finished teams, persistent and ranked) -->
+    <!-- Final Results Table (finished teams, paginated) -->
     <h2>Final Results</h2>
     <table id="finalResults">
         <thead>
@@ -85,6 +85,10 @@
         let scoreboardData = {};
         const activeScoreboardBody = document.getElementById('activeScoreboardBody');
         const finalResultsBody = document.getElementById('finalResultsBody');
+
+        // Pagination variables for final results.
+        let currentPage = 0;
+        const resultsPerPage = 4;
 
         // Helper function to format seconds into mm:ss format.
         function formatTime(seconds) {
@@ -142,7 +146,7 @@
             });
         }
 
-        // Render the Final Results table (only finished teams).
+        // Render the Final Results table with pagination.
         function renderFinalResults() {
             finalResultsBody.innerHTML = '';
             // Filter finished teams.
@@ -150,12 +154,25 @@
             // Sort finished teams by finalTime (lowest first).
             finishedPlayers.sort((a, b) => a.finalTime - b.finalTime);
 
-            finishedPlayers.forEach((player, index) => {
+            const totalPages = Math.ceil(finishedPlayers.length / resultsPerPage);
+            if (totalPages === 0) return; // nothing to display
+
+            // Ensure currentPage is within bounds.
+            if (currentPage >= totalPages) {
+                currentPage = 0;
+            }
+
+            // Determine the slice of players for the current page.
+            const startIndex = currentPage * resultsPerPage;
+            const endIndex = startIndex + resultsPerPage;
+            const pagePlayers = finishedPlayers.slice(startIndex, endIndex);
+
+            pagePlayers.forEach((player, index) => {
                 const row = document.createElement('tr');
 
-                // Rank
+                // Overall Rank (using the player’s index within the sorted finishedPlayers array)
                 const rankCell = document.createElement('td');
-                rankCell.textContent = index + 1;
+                rankCell.textContent = startIndex + index + 1;
                 row.appendChild(rankCell);
 
                 // Player Name
@@ -179,11 +196,21 @@
             renderFinalResults();
         });
 
-        // Update both tables every second to refresh countdowns.
+        // Update both tables every second (active team timers update every second).
         setInterval(() => {
             renderActiveScoreboard();
             renderFinalResults();
         }, 1000);
+
+        // Change the final results page every 5 seconds.
+        setInterval(() => {
+            const finishedPlayers = Object.values(scoreboardData).filter(player => player.status === 'finished');
+            const totalPages = Math.ceil(finishedPlayers.length / resultsPerPage);
+            if (totalPages > 0) {
+                currentPage = (currentPage + 1) % totalPages;
+                renderFinalResults();
+            }
+        }, 5000);
     </script>
 </body>
 
